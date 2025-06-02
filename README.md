@@ -2,6 +2,83 @@
 
 완전한 JSON 자동 암호화/복호화 시스템으로 구축된 보안 웹 애플리케이션
 
+## 🔄 시스템 동작 구조
+
+```mermaid
+graph TB
+    subgraph "클라이언트 계층"
+        A[브라우저] --> B[crypto-utils.js]
+        B --> C[WebAssembly 암호화 모듈]
+        C --> D[Go 암호화 엔진]
+    end
+    
+    subgraph "네트워크 통신"
+        E[암호화된 JSON 데이터]
+    end
+    
+    subgraph "서버 계층"
+        F[Express.js 서버] --> G[자동 암호화 미들웨어]
+        G --> H[crypto.js 모듈]
+        H --> I[비즈니스 로직]
+    end
+    
+    subgraph "데이터 플로우"
+        J["/api/secure/* 자동 암호화"]
+        K["기타 경로 선택적 암호화"]
+    end
+    
+    A -->|평문 JSON| B
+    C -->|AES-256-GCM| E
+    E -->|네트워크 전송| F
+    G -->|복호화된 JSON| I
+    I -->|응답 JSON| G
+    G -->|암호화된 응답| E
+    E -->|네트워크 전송| C
+    C -->|복호화된 JSON| A
+    
+    F --> J
+    F --> K
+    
+    style A fill:#e1f5fe
+    style D fill:#f3e5f5
+    style I fill:#e8f5e8
+    style J fill:#fff3e0
+    style K fill:#fce4ec
+```
+
+## 🚀 빠른 실행
+
+### Docker Compose로 전체 실행
+```bash
+# 개발환경 빌드 및 실행
+docker-compose up -d wasm-builder pnpm-dev && docker-compose up -d frontend backend
+
+# 프로덕션 환경 실행
+docker-compose up -d frontend backend
+```
+
+### 개별 실행 (개발용)
+```bash
+# 전체 의존성 설치
+pnpm install:all
+
+# WebAssembly 모듈 빌드
+pnpm build:wasm
+
+# 백엔드 서버 실행 (포트 3000)
+pnpm dev:backend
+
+# 프론트엔드 서버 실행 (포트 8000)
+pnpm dev:frontend
+
+# 동시 실행
+pnpm dev
+```
+
+### 웹 브라우저에서 확인
+- **기본 데모**: http://localhost:8000
+- **보안 데모**: http://localhost:8000/secure-demo.html
+
 ## ✨ 주요 기능
 
 ### 🔒 자동 암호화/복호화
@@ -24,24 +101,39 @@
 
 ```
 📁 프로젝트 루트
-├── 📁 backend/          # Express.js 서버
+├── 📁 backend/                    # Express.js 서버
 │   ├── 📁 src/
-│   │   ├── 🔧 index.js    # 메인 서버 (자동 암호화 미들웨어 포함)
-│   │   ├── 🔐 crypto.js   # 암호화 모듈 + JSON 처리 + 미들웨어
-│   │   └── 🧪 test.js     # 테스트 스크립트
-│   └── 📄 package.json
-├── 📁 frontend/         # 클라이언트 애플리케이션
+│   │   ├── 🔧 index.js           # 메인 서버 (자동 암호화 미들웨어 포함)
+│   │   ├── 🔐 crypto.js          # 암호화 모듈 + JSON 처리 + 미들웨어
+│   │   └── 🧪 test.js            # 테스트 스크립트
+│   ├── 📄 package.json
+│   ├── 🐳 Dockerfile
+│   └── 📖 README.md
+├── 📁 frontend/                   # 클라이언트 애플리케이션
 │   ├── 📁 src/
-│   │   ├── 🌐 index.html        # 기본 데모 페이지
-│   │   ├── 🔐 secure-demo.html  # 새로운 보안 데모 페이지
-│   │   ├── 🛠️ crypto-utils.js   # 클라이언트 암호화 유틸리티
-│   │   ├── 🔒 main.wasm         # WebAssembly 암호화 모듈
-│   │   └── ⚙️ wasm_exec.js      # WebAssembly 실행기
+│   │   ├── 🌐 index.html         # 기본 데모 페이지
+│   │   ├── 🔐 secure-demo.html   # 새로운 보안 데모 페이지
+│   │   ├── 🛠️ crypto-utils.js    # 클라이언트 암호화 유틸리티
+│   │   └── 📁 crypto-wasm/       # WebAssembly 모듈
+│   │       ├── 🔒 main.wasm      # 컴파일된 WebAssembly 바이너리
+│   │       ├── ⚙️ wasm_exec.js   # WebAssembly 실행기
+│   │       ├── 🔥 main.go        # Go 암호화 소스코드
+│   │       ├── 🔨 build.sh       # Linux/macOS 빌드 스크립트
+│   │       └── 🔨 build.bat      # Windows 빌드 스크립트
+│   ├── 📄 package.json
+│   ├── 🐳 Dockerfile
+│   ├── 🔧 dev-server.js          # 개발 서버
+│   ├── ⚙️ nginx.conf             # Nginx 설정
+│   └── 📖 README.md
+├── 📁 shared/                     # 공유 모듈
+│   ├── 📋 constants.js           # 상수 및 설정
 │   └── 📄 package.json
-├── 📁 shared/           # 공유 모듈
-│   ├── 📋 constants.js    # 상수 및 설정
-│   └── 📄 package.json
-└── 📄 README.md
+├── 🐳 docker-compose.yml         # Docker Compose 설정
+├── 📦 package.json               # 루트 패키지 설정 (pnpm 워크스페이스)
+├── 🔒 pnpm-workspace.yaml        # pnpm 워크스페이스 설정
+├── 🧪 test-secure-api.js          # API 테스트 스크립트
+├── 🧪 test-wasm.js               # WebAssembly 테스트 스크립트
+└── 📄 README.md                  # 현재 문서
 ```
 
 ## 🔐 암호화 동작 원리
@@ -71,34 +163,6 @@ const response = { status: "success", user: {...} };
 // ↓ 자동 암호화
 const encryptedResponse = "base64_encrypted_response...";
 ```
-
-## 🚀 빠른 시작
-
-### 1. 설치
-```bash
-# 전체 의존성 설치
-pnpm install:all
-
-# 또는 개별 설치
-cd backend && pnpm install
-cd frontend && pnpm install
-```
-
-### 2. 개발 서버 실행
-```bash
-# 백엔드 서버 실행 (포트 3000)
-pnpm dev:backend
-
-# 프론트엔드 서버 실행 (포트 8000)
-pnpm dev:frontend
-
-# 동시 실행
-pnpm dev
-```
-
-### 3. 웹 브라우저에서 확인
-- **기본 데모**: http://localhost:8000
-- **보안 데모**: http://localhost:8000/secure-demo.html
 
 ## 🛡️ 보안 API 엔드포인트
 
@@ -158,11 +222,15 @@ POST /api/secure/message/send
 # 기본 암호화 테스트
 pnpm test:crypto
 
-# JSON 암호화 테스트
-pnpm test:json
+# JSON 암호화 테스트  
+pnpm test:backend
 
 # 전체 테스트 스위트
 pnpm test
+
+# 직접 테스트 실행
+node test-secure-api.js
+node test-wasm.js
 ```
 
 ### 프론트엔드 테스트
@@ -235,7 +303,10 @@ API_BASE_URL=https://your-backend-domain.com
 ### Docker 배포
 ```bash
 # 전체 스택 배포
-docker-compose up -d
+docker-compose up -d frontend backend
+
+# 개발 환경 포함 배포
+docker-compose --profile dev --profile pnpm-dev up -d
 
 # 개별 서비스 배포
 docker-compose up -d backend
