@@ -1,153 +1,195 @@
-# 🚀 Client Side Cryptography
+# Web Security - 양방향 암호화 통신 시스템 (pnpm)
 
-이 프로젝트는 Go로 작성된 WebAssembly를 사용하여 브라우저에서 현재 URL의 호스트 정보를 자동으로 파싱하는 예제입니다.
+이 프로젝트는 Node.js Express 서버와 클라이언트 간에 양방향 암호화를 통한 안전한 데이터 통신을 구현한 모노레포입니다. 
+Go로 작성된 WebAssembly를 사용하여 클라이언트측 암호화/복호화를 처리하고, 서버에서도 동일한 키로 데이터를 암호화/복호화합니다.
 
-## 🎯 기능
+**⚡ pnpm을 사용하여 빠르고 효율적인 패키지 관리를 제공합니다.**
 
-- 현재 브라우저 URL의 호스트 정보 자동 감지
-- 전체 URL 정보 파싱 (프로토콜, 호스트, 포트, 경로 등)
-- 실시간 콘솔 출력
-- 사용자 친화적인 웹 인터페이스
+## 🏗️ 프로젝트 구조
 
-## 📋 필요한 환경
+```
+web-security/
+├── frontend/          # 클라이언트 애플리케이션
+│   ├── src/
+│   ├── crypto-wasm/   # Go WebAssembly 암호화 모듈
+│   └── package.json
+├── backend/           # Express 서버
+│   ├── src/
+│   └── package.json
+├── shared/            # 공유 설정 및 유틸리티
+│   └── package.json
+├── pnpm-workspace.yaml # pnpm 워크스페이스 설정
+├── .npmrc             # pnpm 설정
+└── README.md
+```
 
-- Go 1.16 이상
-- 최신 웹 브라우저 (Chrome, Firefox, Safari, Edge)
-- VS Code Live Server 확장 (또는 다른 로컬 웹 서버)
+## 🔐 암호화 시스템 아키텍처
 
-## 🛠️ 설치 및 빌드
+```mermaid
+sequenceDiagram
+    participant C as Client (Browser)
+    participant W as WebAssembly (Go)
+    participant S as Express Server
+    participant E as Server Encryption
+    
+    Note over C,E: 동일한 AES-256 키 사용
+    
+    C->>W: 요청 데이터
+    W->>W: AES-256 암호화
+    W->>S: 암호화된 데이터 전송
+    S->>E: 암호화된 데이터
+    E->>E: AES-256 복호화
+    E->>E: 비즈니스 로직 처리
+    E->>E: 응답 데이터 AES-256 암호화
+    S->>W: 암호화된 응답
+    W->>W: AES-256 복호화
+    W->>C: 복호화된 응답 데이터
+```
 
-### 1. 파일 준비
+## 🚀 빌드 및 실행 방법
 
-모든 파일을 같은 디렉토리에 저장하세요:
-- `main.go` - Go 소스 코드
-- `go.mod` - Go 모듈 파일
-- `index.html` - 메인 HTML 파일
-- `wasm_helper.js` - WebAssembly 로드 헬퍼
-- `build.sh` (Linux/Mac) 또는 `build.bat` (Windows) - 빌드 스크립트
+### Prerequisites
+- Node.js (v16 이상)
+- pnpm (v8 이상) - `npm install -g pnpm`
+- Go (v1.19 이상)
 
-### 2. 빌드 실행
-
-**Linux/Mac:**
+### 1. 전체 프로젝트 설정
 ```bash
-chmod +x build.sh
-./build.sh
+# 루트 디렉토리에서
+pnpm install
 ```
 
-**Windows:**
-```cmd
-build.bat
-```
-
-**수동 빌드:**
+### 2. WebAssembly 빌드
 ```bash
-# Go 모듈 초기화 (처음 한 번만)
-go mod init wasm-url-parser
-
-# 환경 변수 설정
-export GOOS=js
-export GOARCH=wasm
-
-# WebAssembly 빌드
-go build -o main.wasm main.go
-
-# wasm_exec.js 복사 (Go 설치 경로에서)
-cp $(go env GOROOT)/misc/wasm/wasm_exec.js ./wasm_exec.js
+pnpm build:wasm
 ```
 
-### 3. 실행
-
-1. VS Code에서 프로젝트 폴더를 엽니다
-2. `index.html` 파일을 열고 우클릭합니다
-3. "Open with Live Server"를 선택합니다
-4. 브라우저에서 자동으로 열립니다
-
-## 📁 파일 구조
-
+### 3. 개발 서버 실행 (병렬)
+```bash
+pnpm dev
 ```
-프로젝트 폴더/
-├── .vscode/
-│   └── settings.json     # VS Code 설정 (옵션)
-├── main.go               # Go 소스 코드
-├── go.mod                # Go 모듈 파일
-├── main.wasm             # 컴파일된 WebAssembly (빌드 후 생성)
-├── wasm_exec.js          # Go WebAssembly 런타임 (빌드 후 생성)
-├── wasm_helper.js        # WebAssembly 로드 헬퍼
-├── index.html            # 메인 HTML 파일
-├── build.sh              # Linux/Mac 빌드 스크립트
-├── build.bat             # Windows 빌드 스크립트
-└── README.md             # 이 파일
+이 명령어는 백엔드(포트 3000)와 프론트엔드(포트 8000)를 동시에 실행합니다.
+
+### 4. 개별 서버 실행
+```bash
+# 백엔드만 실행
+pnpm dev:backend
+
+# 프론트엔드만 실행
+pnpm dev:frontend
 ```
 
-## 🎮 사용 방법
+## 📋 각 폴더별 빌드 방법
 
-1. **자동 감지**: 페이지가 로드되면 자동으로 현재 호스트가 표시됩니다
-2. **현재 호스트 가져오기**: 버튼을 클릭하여 호스트 정보만 가져옵니다
-3. **전체 URL 정보 가져오기**: 버튼을 클릭하여 상세한 URL 정보를 확인합니다
-4. **출력 지우기**: 화면의 출력 내용을 지웁니다
-
-## 💡 코드 설명
-
-### Go 코드 (main.go)
-
-- `getCurrentHost()`: 브라우저의 `window.location.host`에서 호스트 정보를 가져옵니다
-- `getCurrentURL()`: 전체 URL 정보를 파싱하여 맵으로 반환합니다
-- `setupFunctions()`: JavaScript에서 호출할 수 있는 함수들을 등록합니다
-
-### JavaScript 연동
-
-Go WebAssembly에서 노출된 함수들:
-- `getHost()`: 현재 호스트 반환
-- `getURLInfo()`: 전체 URL 정보 객체 반환
-- `goWasmReady()`: WebAssembly 로드 완료 시 호출
-
-## 🔧 트러블슈팅
-
-### VS Code에서 syscall/js 임포트 오류
-Go 확장이 기본적으로 현재 OS 환경으로 코드를 분석하기 때문에 발생합니다.
-
-**해결 방법 1: VS Code 설정 파일**
-프로젝트 루트에 `.vscode/settings.json` 파일을 생성하고 다음 내용 추가:
-```json
-{
-    "go.toolsEnvVars": {
-        "GOOS": "js",
-        "GOARCH": "wasm"
-    },
-    "go.buildTags": "js,wasm"
-}
+### Frontend (`/frontend`)
+```bash
+cd frontend
+pnpm install          # 의존성 설치
+pnpm build-wasm       # WebAssembly 빌드
+pnpm dev              # 개발 서버 실행
+pnpm build            # 프로덕션 빌드
 ```
 
-**해결 방법 2: Go 확장 설정**
-1. VS Code에서 `Ctrl+,` (설정 열기)
-2. "go build tags" 검색
-3. `js,wasm` 입력
+### Backend (`/backend`)
+```bash
+cd backend
+pnpm install          # 의존성 설치
+pnpm dev              # 개발 서버 실행 (nodemon)
+pnpm start            # 프로덕션 서버 실행
+pnpm test             # 테스트 실행
+pnpm test:crypto      # 암호화 테스트 실행
+```
 
-**해결 방법 3: 빌드 제약 조건 (이미 추가됨)**
-`main.go` 파일 상단에 빌드 태그가 있어 WebAssembly 환경에서만 컴파일됩니다.
+### WebAssembly Crypto Module (`/frontend/crypto-wasm`)
+```bash
+cd frontend/crypto-wasm
+go mod tidy           # Go 모듈 정리
+./build.sh            # WebAssembly 빌드 (Linux/Mac)
+./build.bat           # WebAssembly 빌드 (Windows)
+```
 
-### WebAssembly 로드 실패
-- `main.wasm` 파일이 HTML 파일과 같은 디렉토리에 있는지 확인
-- 웹 서버를 통해 접근하고 있는지 확인 (file:// 프로토콜 사용 금지)
+## 🔑 보안 특징
 
-### wasm_exec.js 파일이 없다는 오류
-- Go 설치 경로의 `misc/wasm/wasm_exec.js`를 수동으로 복사
-- 또는 [Go 공식 저장소](https://github.com/golang/go/blob/master/misc/wasm/wasm_exec.js)에서 다운로드
+- **AES-256-GCM 암호화**: 강력한 대칭키 암호화 알고리즘 사용
+- **동일 키 공유**: 클라이언트와 서버가 동일한 암호화 키 사용
+- **WebAssembly**: 브라우저에서 네이티브 수준의 암호화 성능
+- **실시간 암호화**: 모든 HTTP 요청/응답이 자동으로 암호화/복호화
 
-### 함수 호출 오류
-- WebAssembly가 완전히 로드될 때까지 기다린 후 함수 호출
-- 브라우저 개발자 도구의 콘솔에서 오류 메시지 확인
+## 🧪 테스트
 
-## 🌟 확장 아이디어
+```bash
+# 전체 테스트
+pnpm test
 
-- 쿠키 정보 읽기/쓰기 기능 추가
-- 로컬 스토리지 연동
-- HTTP 요청 기능 구현
-- 실시간 URL 변경 감지
-- JSON 데이터 파싱 및 처리
+# 백엔드 암호화 테스트
+pnpm test:crypto
 
-## 📚 참고 자료
+# 개별 프로젝트 테스트
+pnpm test:backend
+pnpm test:frontend
+```
 
-- [Go WebAssembly 공식 문서](https://pkg.go.dev/syscall/js)
-- [WebAssembly 소개](https://webassembly.org/)
-- [MDN WebAssembly 가이드](https://developer.mozilla.org/en-US/docs/WebAssembly)
+## 📦 배포
+
+### Docker 배포
+```bash
+# 프로덕션 빌드
+pnpm build
+
+# Docker Compose로 배포
+docker-compose up --build
+
+# pnpm 개발 환경 (Docker)
+docker-compose --profile pnpm-dev up
+```
+
+### 수동 배포
+```bash
+# 프로덕션 빌드
+pnpm build
+
+# 프로덕션 서버 시작
+pnpm start
+```
+
+## ⚡ pnpm의 장점
+
+1. **빠른 설치**: 심볼릭 링크를 사용한 효율적인 패키지 관리
+2. **디스크 공간 절약**: 중복 패키지 제거
+3. **엄격한 의존성 관리**: 유령 의존성 방지
+4. **모노레포 친화적**: 워크스페이스 기본 지원
+5. **호환성**: npm과 yarn과 완전 호환
+
+## 🛠️ 유용한 pnpm 명령어
+
+```bash
+# 모든 워크스페이스에 의존성 설치
+pnpm install
+
+# 특정 워크스페이스에서 명령 실행
+pnpm --filter backend dev
+pnpm --filter frontend build
+
+# 모든 워크스페이스에서 병렬 실행
+pnpm --parallel --recursive dev
+
+# 의존성 정리
+pnpm clean:deps
+
+# 빌드 캐시 정리
+pnpm store prune
+```
+
+## 🤝 기여하기
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+appLinks
+## 📞 문의 및 지원
+
+- 이슈 리포팅: GitHub Issues
+- 문서: 각 폴더의 README.md 참조
+- 라이선스: MIT

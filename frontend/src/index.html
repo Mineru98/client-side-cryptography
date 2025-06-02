@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Web Security - 양방향 암호화 데모</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .demo-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+
+        .demo-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .input-group textarea,
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            font-family: monospace;
+        }
+
+        .input-group textarea:focus,
+        .input-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.ready {
+            background: #d1edff;
+            color: #004085;
+            border: 1px solid #bee5eb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .key-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .key-info h3 {
+            color: #0056b3;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h4 {
+            color: #007bff;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Web Security</h1>
+            <p>Go WebAssembly를 활용한 양방향 AES-256-GCM 암호화 시스템</p>
+        </div>
+
+        <div class="content">
+            <div id="status" class="status loading">
+                ⏳ WebAssembly 모듈을 로딩중입니다...
+            </div>
+
+            <div id="key-info" class="key-info" style="display: none;">
+                <h3>🔑 암호화 키 정보</h3>
+                <div id="key-details"></div>
+            </div>
+
+            <div class="grid">
+                <div class="demo-section">
+                    <h2>🔒 데이터 암호화</h2>
+                    <div class="input-group">
+                        <label for="plaintext">평문 데이터:</label>
+                        <textarea id="plaintext" rows="4" placeholder="암호화할 데이터를 입력하세요..."></textarea>
+                    </div>
+                    <button class="btn" onclick="encryptData()">🔒 암호화</button>
+                    <button class="btn secondary" onclick="clearEncrypt()">🗑️ 지우기</button>
+                    
+                    <div class="input-group" style="margin-top: 20px;">
+                        <label>암호화 결과:</label>
+                        <div id="encrypted-output" class="output">암호화 결과가 여기에 표시됩니다...</div>
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h2>🔓 데이터 복호화</h2>
+                    <div class="input-group">
+                        <label for="ciphertext">암호화된 데이터:</label>
+                        <textarea id="ciphertext" rows="4" placeholder="복호화할 암호화된 데이터를 입력하세요..."></textarea>
+                    </div>
+                    <button class="btn success" onclick="decryptData()">🔓 복호화</button>
+                    <button class="btn secondary" onclick="clearDecrypt()">🗑️ 지우기</button>
+                    <button class="btn secondary" onclick="copyFromEncrypted()">📋 암호화 결과 복사</button>
+                    
+                    <div class="input-group" style="margin-top: 20px;">
+                        <label>복호화 결과:</label>
+                        <div id="decrypted-output" class="output">복호화 결과가 여기에 표시됩니다...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <h2>🌐 서버 통신 테스트</h2>
+                <p>Express 서버와 암호화된 통신을 테스트합니다.</p>
+                <div class="input-group">
+                    <label for="server-data">서버로 보낼 데이터:</label>
+                    <textarea id="server-data" rows="3" placeholder="서버로 보낼 데이터를 입력하세요..."></textarea>
+                </div>
+                <button class="btn" onclick="testServerCommunication()">🚀 서버 통신 테스트</button>
+                <button class="btn secondary" onclick="clearServerTest()">🗑️ 지우기</button>
+                
+                <div class="input-group" style="margin-top: 20px;">
+                    <label>서버 응답:</label>
+                    <div id="server-output" class="output">서버 응답이 여기에 표시됩니다...</div>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h4 id="encrypt-count">0</h4>
+                    <p>암호화 횟수</p>
+                </div>
+                <div class="stat-card">
+                    <h4 id="decrypt-count">0</h4>
+                    <p>복호화 횟수</p>
+                </div>
+                <div class="stat-card">
+                    <h4 id="server-requests">0</h4>
+                    <p>서버 요청 횟수</p>
+                </div>
+                <div class="stat-card">
+                    <h4 id="total-data">0</h4>
+                    <p>처리된 데이터 (바이트)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../crypto-wasm/wasm_exec.js"></script>
+    <script>
+        let wasmReady = false;
+        let stats = {
+            encryptCount: 0,
+            decryptCount: 0,
+            serverRequests: 0,
+            totalData: 0
+        };
+
+        // WebAssembly 로드
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("../crypto-wasm/main.wasm"), go.importObject)
+            .then((result) => {
+                go.run(result.instance);
+            })
+            .catch((error) => {
+                console.error("WebAssembly 로드 실패:", error);
+                updateStatus("error", "❌ WebAssembly 로드에 실패했습니다: " + error.message);
+            });
+
+        // WebAssembly 준비 완료 콜백
+        window.onCryptoWasmReady = function() {
+            wasmReady = true;
+            updateStatus("ready", "✅ 암호화 모듈이 준비되었습니다!");
+            loadKeyInfo();
+        };
+
+        function updateStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function loadKeyInfo() {
+            if (!wasmReady) return;
+            
+            try {
+                const keyInfo = getEncryptionKey();
+                document.getElementById('key-info').style.display = 'block';
+                document.getElementById('key-details').innerHTML = `
+                    <p><strong>알고리즘:</strong> ${keyInfo.algorithm}</p>
+                    <p><strong>키 크기:</strong> ${keyInfo.keySize} bytes</p>
+                    <p><strong>키 해시:</strong> ${keyInfo.keyHash}</p>
+                `;
+            } catch (error) {
+                console.error("키 정보 로드 실패:", error);
+            }
+        }
+
+        function encryptData() {
+            if (!wasmReady) {
+                alert("WebAssembly가 아직 준비되지 않았습니다.");
+                return;
+            }
+
+            const plaintext = document.getElementById('plaintext').value;
+            if (!plaintext) {
+                alert("암호화할 데이터를 입력하세요.");
+                return;
+            }
+
+            try {
+                const result = cryptoEncrypt(plaintext);
+                if (result.success) {
+                    document.getElementById('encrypted-output').textContent = 
+                        `✅ 암호화 성공!\n\n암호화된 데이터:\n${result.data}\n\n길이: ${result.length} bytes`;
+                    stats.encryptCount++;
+                    stats.totalData += plaintext.length;
+                    updateStats();
+                } else {
+                    document.getElementById('encrypted-output').textContent = 
+                        `❌ 암호화 실패:\n${result.error}`;
+                }
+            } catch (error) {
+                document.getElementById('encrypted-output').textContent = 
+                    `❌ 오류 발생:\n${error.message}`;
+            }
+        }
+
+        function decryptData() {
+            if (!wasmReady) {
+                alert("WebAssembly가 아직 준비되지 않았습니다.");
+                return;
+            }
+
+            const ciphertext = document.getElementById('ciphertext').value;
+            if (!ciphertext) {
+                alert("복호화할 데이터를 입력하세요.");
+                return;
+            }
+
+            try {
+                const result = cryptoDecrypt(ciphertext);
+                if (result.success) {
+                    document.getElementById('decrypted-output').textContent = 
+                        `✅ 복호화 성공!\n\n복호화된 데이터:\n${result.data}\n\n길이: ${result.length} bytes`;
+                    stats.decryptCount++;
+                    stats.totalData += result.length;
+                    updateStats();
+                } else {
+                    document.getElementById('decrypted-output').textContent = 
+                        `❌ 복호화 실패:\n${result.error}`;
+                }
+            } catch (error) {
+                document.getElementById('decrypted-output').textContent = 
+                    `❌ 오류 발생:\n${error.message}`;
+            }
+        }
+
+        function copyFromEncrypted() {
+            const encryptedOutput = document.getElementById('encrypted-output').textContent;
+            const lines = encryptedOutput.split('\n');
+            for (let line of lines) {
+                if (line.length > 50 && !line.includes('✅') && !line.includes('암호화된') && !line.includes('길이:')) {
+                    document.getElementById('ciphertext').value = line.trim();
+                    break;
+                }
+            }
+        }
+
+        async function testServerCommunication() {
+            if (!wasmReady) {
+                alert("WebAssembly가 아직 준비되지 않았습니다.");
+                return;
+            }
+
+            const data = document.getElementById('server-data').value;
+            if (!data) {
+                alert("서버로 보낼 데이터를 입력하세요.");
+                return;
+            }
+
+            try {
+                document.getElementById('server-output').textContent = "🔄 서버와 통신중...";
+
+                // 데이터 암호화
+                const encryptResult = cryptoEncrypt(data);
+                if (!encryptResult.success) {
+                    throw new Error("데이터 암호화 실패: " + encryptResult.error);
+                }
+
+                // 서버로 암호화된 데이터 전송
+                const response = await fetch('http://localhost:3000/api/secure-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ encryptedData: encryptResult.data })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`서버 오류: ${response.status}`);
+                }
+
+                const serverResponse = await response.json();
+                
+                // 서버 응답 복호화
+                const decryptResult = cryptoDecrypt(serverResponse.encryptedData);
+                if (!decryptResult.success) {
+                    throw new Error("응답 복호화 실패: " + decryptResult.error);
+                }
+
+                document.getElementById('server-output').textContent = 
+                    `✅ 서버 통신 성공!\n\n` +
+                    `보낸 데이터: ${data}\n` +
+                    `암호화된 데이터: ${encryptResult.data.substring(0, 50)}...\n\n` +
+                    `서버 응답 (복호화됨): ${decryptResult.data}\n` +
+                    `응답 상태: ${serverResponse.status}`;
+
+                stats.serverRequests++;
+                stats.totalData += data.length;
+                updateStats();
+
+            } catch (error) {
+                document.getElementById('server-output').textContent = 
+                    `❌ 서버 통신 실패:\n${error.message}\n\n서버가 실행중인지 확인하세요. (http://localhost:3000)`;
+            }
+        }
+
+        function clearEncrypt() {
+            document.getElementById('plaintext').value = '';
+            document.getElementById('encrypted-output').textContent = '암호화 결과가 여기에 표시됩니다...';
+        }
+
+        function clearDecrypt() {
+            document.getElementById('ciphertext').value = '';
+            document.getElementById('decrypted-output').textContent = '복호화 결과가 여기에 표시됩니다...';
+        }
+
+        function clearServerTest() {
+            document.getElementById('server-data').value = '';
+            document.getElementById('server-output').textContent = '서버 응답이 여기에 표시됩니다...';
+        }
+
+        function updateStats() {
+            document.getElementById('encrypt-count').textContent = stats.encryptCount;
+            document.getElementById('decrypt-count').textContent = stats.decryptCount;
+            document.getElementById('server-requests').textContent = stats.serverRequests;
+            document.getElementById('total-data').textContent = stats.totalData;
+        }
+
+        // 샘플 데이터
+        window.onload = function() {
+            document.getElementById('plaintext').value = '안녕하세요! 이것은 테스트 메시지입니다. 🔐';
+            document.getElementById('server-data').value = 'Hello Server! This is encrypted communication test.';
+        };
+    </script>
+</body>
+</html> 

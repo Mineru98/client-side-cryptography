@@ -1,0 +1,36 @@
+{
+  "name": "web-security-monorepo",
+  "version": "1.0.0",
+  "description": "양방향 암호화 통신 시스템 모노레포 (pnpm)",
+  "private": true,
+  "packageManager": "pnpm@8.0.0",
+  "engines": {
+    "node": ">=16.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "install:all": "pnpm install",
+    "build:wasm": "pnpm --filter frontend build-wasm",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "build": "pnpm build:wasm && pnpm build:frontend && pnpm build:backend",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev": "pnpm --parallel --filter \"{frontend,backend}\" dev",
+    "test": "pnpm --recursive test",
+    "test:backend": "pnpm --filter backend test",
+    "test:frontend": "pnpm --filter frontend test",
+    "test:crypto": "pnpm --filter backend test:crypto",
+    "clean": "pnpm --recursive clean && rm -rf node_modules",
+    "clean:deps": "pnpm --recursive exec rm -rf node_modules && rm -rf node_modules",
+    "start": "pnpm --filter backend start",
+    "lint": "pnpm --recursive lint",
+    "format": "pnpm --recursive format"
+  },
+  "keywords": ["encryption", "webassembly", "go", "nodejs", "express", "pnpm", "monorepo"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 

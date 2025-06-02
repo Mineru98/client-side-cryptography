@@ -1,0 +1,22 @@
+{
+  "name": "web-security-frontend",
+  "version": "1.0.0",
+  "description": "양방향 암호화 통신 시스템 - 프론트엔드 (npm)",
+  "main": "src/index.html",
+  "scripts": {
+    "dev": "npx http-server src -p 8000 -c-1 --cors",
+    "build-wasm": "cd crypto-wasm && chmod +x build.sh && ./build.sh",
+    "build": "mkdir -p dist && cp -r src/* dist/",
+    "serve": "npx http-server dist -p 8000 --cors",
+    "clean": "rm -rf dist && cd crypto-wasm && rm -f main.wasm",
+    "test": "echo \"Frontend tests not implemented yet\" && exit 0",
+    "lint": "echo \"Linting not configured\" && exit 0",
+    "format": "echo \"Formatting not configured\" && exit 0"
+  },
+  "keywords": ["encryption", "webassembly", "go", "frontend", "npm"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+} 
