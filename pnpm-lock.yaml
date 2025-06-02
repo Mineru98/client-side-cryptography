@@ -47,8 +47,6 @@ importers:
         specifier: ^14.1.1
         version: 14.1.1
 
-  shared: {}
-
 packages:
 
   /@ampproject/remapping@2.3.0:

@@ -129,9 +129,6 @@ pnpm dev
 │   ├── 🔧 dev-server.js          # 개발 서버
 │   ├── ⚙️ nginx.conf             # Nginx 설정
 │   └── 📖 README.md
-├── 📁 shared/                     # 공유 모듈
-│   ├── 📋 constants.js           # 상수 및 설정
-│   └── 📄 package.json
 ├── 🐳 docker-compose.yml         # Docker Compose 설정
 ├── 📦 package.json               # 루트 패키지 설정 (pnpm 워크스페이스)
 ├── 🔒 pnpm-workspace.yaml        # pnpm 워크스페이스 설정
@@ -306,6 +303,9 @@ API_BASE_URL=https://your-backend-domain.com
 
 ### Docker 배포
 ```bash
+# 재실행 시
+docker-compose down --volumes --remove-orphans && docker system prune -f && docker-compose up -d wasm-builder pnpm-dev && docker-compose up -d frontend backend
+
 # 전체 스택 배포
 docker-compose up -d frontend backend
 
