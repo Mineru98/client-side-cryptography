@@ -1,0 +1,14 @@
+{
+    "go.toolsEnvVars": {
+        "GOOS": "js",
+        "GOARCH": "wasm"
+    },
+    "go.buildTags": "js,wasm",
+    "files.associations": {
+        "*.wasm": "binary"
+    },
+    "go.useLanguageServer": true,
+    "go.languageServerFlags": [
+        "-rpc.trace"
+    ]
+}
