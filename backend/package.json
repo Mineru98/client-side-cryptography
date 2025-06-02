@@ -1,7 +1,7 @@
 {
   "name": "web-security-backend",
   "version": "1.0.0",
-  "description": "양방향 암호화 통신 시스템 - 백엔드 API 서버 (pnpm)",
+  "description": "양방향 암호화 통신 시스템 - 백엔드 API 서버 (JSON 자동 암호화/복호화)",
   "main": "src/index.js",
   "scripts": {
     "dev": "pnpm dlx nodemon src/index.js",
@@ -10,11 +10,12 @@
     "test": "pnpm dlx jest",
     "test:watch": "pnpm dlx jest --watch",
     "test:crypto": "node src/test.js",
+    "test:json": "node -e \"const crypto = require('./src/crypto'); crypto.testJSONEncryption();\"",
     "clean": "rm -rf dist",
     "lint": "echo \"Linting not configured\" && exit 0",
     "format": "echo \"Formatting not configured\" && exit 0"
   },
-  "keywords": ["encryption", "express", "nodejs", "backend", "pnpm"],
+  "keywords": ["encryption", "express", "nodejs", "backend", "pnpm", "json", "security"],
   "author": "",
   "license": "MIT",
   "dependencies": {

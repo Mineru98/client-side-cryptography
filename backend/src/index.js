@@ -33,6 +33,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// 암호화 미들웨어 적용 (secure 경로에만)
+app.use(crypto.decryptRequestMiddleware);
+app.use(crypto.encryptResponseMiddleware);
+
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
     res.json({
@@ -62,6 +66,27 @@ app.get('/api/crypto-info', (req, res) => {
     }
 });
 
+// JSON 암호화 테스트 엔드포인트
+app.post('/api/test-json-encryption', (req, res) => {
+    try {
+        const { testData } = req.body;
+        const result = crypto.testJSONEncryption(testData);
+        
+        res.json({
+            status: 'success',
+            data: result,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ JSON 암호화 테스트 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'JSON 암호화 테스트에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
 // 암호화 테스트 엔드포인트
 app.post('/api/test-encryption', (req, res) => {
     try {
@@ -83,7 +108,7 @@ app.post('/api/test-encryption', (req, res) => {
     }
 });
 
-// 보안 데이터 통신 엔드포인트 (메인 기능)
+// 보안 데이터 통신 엔드포인트 (기존 유지)
 app.post('/api/secure-data', (req, res) => {
     try {
         const { encryptedData } = req.body;
@@ -105,8 +130,8 @@ app.post('/api/secure-data', (req, res) => {
         const processedData = processBusinessLogic(decryptedData);
         console.log('⚙️ 처리된 데이터:', processedData);
         
-        // 응답 데이터 암호화
-        const encryptedResponse = crypto.encrypt(processedData);
+        // 응답 데이터 암호화 (객체이므로 encryptJSON 사용)
+        const encryptedResponse = crypto.encryptJSON(processedData);
         console.log('🔒 응답 데이터 암호화 완료:', encryptedResponse.substring(0, 50) + '...');
         
         res.json({
@@ -126,7 +151,228 @@ app.post('/api/secure-data', (req, res) => {
     }
 });
 
-// 데이터 암호화 엔드포인트
+// ============ 새로운 보안 API 엔드포인트들 ============
+
+// 사용자 관리 API (자동 암호화/복호화)
+app.post('/api/secure/user/register', (req, res) => {
+    try {
+        const { username, email, password, profile } = req.body;
+        
+        // 입력 검증
+        if (!username || !email || !password) {
+            return res.status(400).json({
+                status: 'error',
+                message: '필수 정보가 누락되었습니다'
+            });
+        }
+        
+        // 사용자 등록 로직 (실제로는 데이터베이스에 저장)
+        const newUser = {
+            id: generateRequestId(),
+            username,
+            email,
+            profile: profile || {},
+            createdAt: new Date().toISOString(),
+            status: 'active'
+        };
+        
+        console.log('👤 새 사용자 등록:', newUser);
+        
+        res.json({
+            status: 'success',
+            message: '사용자가 성공적으로 등록되었습니다',
+            data: {
+                id: newUser.id,
+                username: newUser.username,
+                email: newUser.email,
+                createdAt: newUser.createdAt
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ 사용자 등록 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: '사용자 등록에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
+app.post('/api/secure/user/login', (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({
+                status: 'error',
+                message: '사용자명과 비밀번호가 필요합니다'
+            });
+        }
+        
+        // 로그인 검증 로직 (실제로는 데이터베이스에서 확인)
+        const user = {
+            id: 'user_' + generateRequestId(),
+            username,
+            email: `${username}@example.com`,
+            lastLogin: new Date().toISOString()
+        };
+        
+        // JWT 토큰 생성 (실제로는 JWT 라이브러리 사용)
+        const token = Buffer.from(JSON.stringify({
+            userId: user.id,
+            username: user.username,
+            exp: Date.now() + 24 * 60 * 60 * 1000 // 24시간
+        })).toString('base64');
+        
+        console.log('🔐 사용자 로그인:', user);
+        
+        res.json({
+            status: 'success',
+            message: '로그인이 성공했습니다',
+            data: {
+                user,
+                token,
+                expiresIn: '24h'
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ 로그인 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: '로그인에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
+// 데이터 관리 API
+app.post('/api/secure/data/create', (req, res) => {
+    try {
+        const { type, content, metadata } = req.body;
+        
+        if (!type || !content) {
+            return res.status(400).json({
+                status: 'error',
+                message: '데이터 타입과 내용이 필요합니다'
+            });
+        }
+        
+        const newData = {
+            id: 'data_' + generateRequestId(),
+            type,
+            content,
+            metadata: metadata || {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        console.log('📝 새 데이터 생성:', newData);
+        
+        res.json({
+            status: 'success',
+            message: '데이터가 성공적으로 생성되었습니다',
+            data: newData
+        });
+        
+    } catch (error) {
+        console.error('❌ 데이터 생성 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: '데이터 생성에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
+app.post('/api/secure/data/read', (req, res) => {
+    try {
+        const { id, type, filters } = req.body;
+        
+        // 데이터 조회 로직 (실제로는 데이터베이스에서 검색)
+        const mockData = {
+            id: id || 'data_' + generateRequestId(),
+            type: type || 'document',
+            content: {
+                title: '샘플 문서',
+                body: '이것은 암호화된 통신으로 전송되는 샘플 데이터입니다.',
+                tags: ['중요', '기밀', '테스트']
+            },
+            metadata: {
+                author: 'system',
+                version: '1.0',
+                classification: 'confidential'
+            },
+            createdAt: new Date().toISOString(),
+            accessedAt: new Date().toISOString()
+        };
+        
+        console.log('📖 데이터 조회:', mockData);
+        
+        res.json({
+            status: 'success',
+            message: '데이터를 성공적으로 조회했습니다',
+            data: mockData
+        });
+        
+    } catch (error) {
+        console.error('❌ 데이터 조회 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: '데이터 조회에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
+// 메시지 관리 API
+app.post('/api/secure/message/send', (req, res) => {
+    try {
+        const { recipient, subject, content, priority } = req.body;
+        
+        if (!recipient || !content) {
+            return res.status(400).json({
+                status: 'error',
+                message: '수신자와 메시지 내용이 필요합니다'
+            });
+        }
+        
+        const message = {
+            id: 'msg_' + generateRequestId(),
+            sender: 'current_user',
+            recipient,
+            subject: subject || '제목 없음',
+            content,
+            priority: priority || 'normal',
+            status: 'sent',
+            sentAt: new Date().toISOString(),
+            encrypted: true
+        };
+        
+        console.log('📨 메시지 전송:', message);
+        
+        res.json({
+            status: 'success',
+            message: '메시지가 성공적으로 전송되었습니다',
+            data: {
+                messageId: message.id,
+                sentAt: message.sentAt,
+                status: message.status
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ 메시지 전송 실패:', error);
+        res.status(500).json({
+            status: 'error',
+            message: '메시지 전송에 실패했습니다',
+            error: error.message
+        });
+    }
+});
+
+// 데이터 암호화 엔드포인트 (기존 유지)
 app.post('/api/encrypt', (req, res) => {
     try {
         const { data } = req.body;
@@ -160,7 +406,7 @@ app.post('/api/encrypt', (req, res) => {
     }
 });
 
-// 데이터 복호화 엔드포인트
+// 데이터 복호화 엔드포인트 (기존 유지)
 app.post('/api/decrypt', (req, res) => {
     try {
         const { encryptedData } = req.body;
@@ -198,79 +444,71 @@ app.post('/api/decrypt', (req, res) => {
 function processBusinessLogic(data) {
     // 예시 비즈니스 로직
     const timestamp = new Date().toISOString();
-    const processedData = {
-        originalData: data,
-        processedAt: timestamp,
-        serverMessage: `서버에서 처리된 데이터: ${data}`,
-        serverTime: timestamp,
-        requestCount: Math.floor(Math.random() * 1000),
-        status: 'processed'
-    };
     
-    return JSON.stringify(processedData);
+    return {
+        processedAt: timestamp,
+        originalData: data,
+        processedResult: `처리된 데이터: ${data} (${timestamp})`,
+        serverInfo: {
+            nodeVersion: process.version,
+            platform: process.platform,
+            uptime: process.uptime()
+        }
+    };
 }
 
 // 요청 ID 생성 함수
 function generateRequestId() {
-    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 404 핸들러
-app.use('*', (req, res) => {
+// 404 에러 핸들러
+app.use((req, res) => {
     res.status(404).json({
         status: 'error',
-        message: '요청한 엔드포인트를 찾을 수 없습니다',
-        path: req.originalUrl
+        message: '요청하신 엔드포인트를 찾을 수 없습니다',
+        path: req.path,
+        method: req.method
     });
 });
 
 // 전역 에러 핸들러
-app.use((err, req, res, next) => {
-    console.error('💥 서버 오류:', err);
-    
-    res.status(err.status || 500).json({
+app.use((error, req, res, next) => {
+    console.error('🚨 서버 에러:', error);
+    res.status(500).json({
         status: 'error',
-        message: err.message || '내부 서버 오류가 발생했습니다',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        message: '서버 내부 오류가 발생했습니다',
+        error: error.message,
+        timestamp: new Date().toISOString()
     });
 });
 
 // 서버 시작
 app.listen(PORT, () => {
-    console.log('\n🚀 Web Security Backend Server Started!');
-    console.log(`📡 Server running on: http://localhost:${PORT}`);
-    console.log(`🔐 Encryption: AES-256-GCM`);
-    console.log(`⏰ Started at: ${new Date().toISOString()}`);
-    console.log('\n📋 Available Endpoints:');
-    console.log(`   GET  /health              - 헬스 체크`);
-    console.log(`   GET  /api/crypto-info     - 암호화 정보`);
-    console.log(`   POST /api/test-encryption - 암호화 테스트`);
-    console.log(`   POST /api/secure-data     - 보안 데이터 통신 (메인)`);
-    console.log(`   POST /api/encrypt         - 데이터 암호화`);
-    console.log(`   POST /api/decrypt         - 데이터 복호화`);
-    console.log('\n🌐 CORS enabled for: http://localhost:8000');
-    console.log('================================\n');
+    console.log('🚀 서버가 시작되었습니다!');
+    console.log(`📍 주소: http://localhost:${PORT}`);
+    console.log(`🕐 시작 시간: ${new Date().toISOString()}`);
+    console.log(`🔧 환경: ${process.env.NODE_ENV || 'development'}`);
+    console.log('📚 사용 가능한 엔드포인트:');
+    console.log('  - GET  /health');
+    console.log('  - GET  /api/crypto-info');
+    console.log('  - POST /api/test-encryption');
+    console.log('  - POST /api/test-json-encryption');
+    console.log('  - POST /api/secure-data');
+    console.log('  - POST /api/encrypt');
+    console.log('  - POST /api/decrypt');
+    console.log('  🔒 보안 엔드포인트 (자동 암호화/복호화):');
+    console.log('  - POST /api/secure/user/register');
+    console.log('  - POST /api/secure/user/login');
+    console.log('  - POST /api/secure/data/create');
+    console.log('  - POST /api/secure/data/read');
+    console.log('  - POST /api/secure/message/send');
     
-    // 서버 시작 시 암호화 테스트 실행
-    console.log('🔧 서버 시작 시 암호화 테스트 실행...');
-    const testResult = crypto.testEncryption();
-    if (testResult.success) {
-        console.log('✅ 서버 암호화 시스템이 정상적으로 작동합니다!\n');
-    } else {
-        console.error('❌ 서버 암호화 시스템에 문제가 있습니다!');
-        console.error('오류:', testResult.error);
-    }
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('\n🛑 SIGTERM 수신, 서버를 안전하게 종료합니다...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('\n🛑 SIGINT 수신, 서버를 안전하게 종료합니다...');
-    process.exit(0);
+    // 시작 시 암호화 테스트 실행
+    console.log('\n🔐 암호화 시스템 테스트 중...');
+    crypto.testEncryption();
+    crypto.testJSONEncryption();
+    console.log('✅ 서버 준비 완료!\n');
 });
 
 module.exports = app; 

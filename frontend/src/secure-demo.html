@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 보안 통신 데모 - JSON 자동 암호화/복호화</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 40px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .status.ready {
+            background: #d1edff;
+            color: #004085;
+            border: 2px solid #bee5eb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .demo-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border-left: 5px solid #007bff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .demo-section h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 15px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-panel h3 {
+            color: #1565c0;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .json-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .encryption-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .encryption-indicator.encrypted {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .encryption-indicator.plain {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 보안 통신 데모</h1>
+            <p>JSON 자동 암호화/복호화 시스템</p>
+            <p>모든 보안 API 호출은 자동으로 암호화되어 전송됩니다</p>
+        </div>
+
+        <div id="status" class="status loading">
+            🔄 WebAssembly 암호화 모듈을 로드하는 중입니다...
+        </div>
+
+        <div class="content">
+            <div class="info-panel">
+                <h3>🔧 시스템 상태</h3>
+                <div id="system-info">
+                    <p><strong>암호화 모듈:</strong> <span id="crypto-status">대기중</span></p>
+                    <p><strong>서버 연결:</strong> <span id="server-status">확인중</span></p>
+                    <p><strong>암호화 방식:</strong> AES-256-GCM</p>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="user-operations">0</div>
+                        <div class="stat-label">사용자 작업</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="data-operations">0</div>
+                        <div class="stat-label">데이터 작업</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="message-operations">0</div>
+                        <div class="stat-label">메시지 작업</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-encrypted">0</div>
+                        <div class="stat-label">총 암호화 횟수</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-grid">
+                <!-- 사용자 관리 섹션 -->
+                <div class="demo-section">
+                    <h2>👤 사용자 관리 <span class="encryption-indicator encrypted">암호화됨</span></h2>
+                    
+                    <div class="input-group">
+                        <label>사용자명:</label>
+                        <input type="text" id="username" placeholder="사용자명 입력" value="testuser">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>이메일:</label>
+                        <input type="email" id="email" placeholder="이메일 주소" value="test@example.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>비밀번호:</label>
+                        <input type="password" id="password" placeholder="비밀번호" value="password123">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>프로필 정보 (JSON):</label>
+                        <textarea id="profile" rows="3" placeholder='{"name": "홍길동", "age": 30}'>{
+  "name": "홍길동",
+  "age": 30,
+  "department": "개발팀"
+}</textarea>
+                    </div>
+                    
+                    <button class="btn success" onclick="registerUser()">사용자 등록</button>
+                    <button class="btn" onclick="loginUser()">로그인</button>
+                    <button class="btn warning" onclick="clearUserForm()">폼 초기화</button>
+                    
+                    <div id="user-output" class="output">
+사용자 관리 결과가 여기에 표시됩니다...
+                    </div>
+                </div>
+
+                <!-- 데이터 관리 섹션 -->
+                <div class="demo-section">
+                    <h2>📝 데이터 관리 <span class="encryption-indicator encrypted">암호화됨</span></h2>
+                    
+                    <div class="input-group">
+                        <label>데이터 타입:</label>
+                        <select id="data-type">
+                            <option value="document">문서</option>
+                            <option value="image">이미지</option>
+                            <option value="config">설정</option>
+                            <option value="report">보고서</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>데이터 내용 (JSON):</label>
+                        <textarea id="data-content" rows="4" placeholder='{"title": "제목", "body": "내용"}'>{
+  "title": "중요한 문서",
+  "body": "이것은 기밀 정보입니다.",
+  "tags": ["중요", "기밀"],
+  "author": "system"
+}</textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>메타데이터 (JSON):</label>
+                        <textarea id="metadata" rows="3" placeholder='{"version": "1.0"}'>{
+  "version": "1.0",
+  "classification": "confidential",
+  "department": "security"
+}</textarea>
+                    </div>
+                    
+                    <button class="btn success" onclick="createData()">데이터 생성</button>
+                    <button class="btn" onclick="readData()">데이터 조회</button>
+                    <button class="btn warning" onclick="clearDataForm()">폼 초기화</button>
+                    
+                    <div id="data-output" class="output">
+데이터 관리 결과가 여기에 표시됩니다...
+                    </div>
+                </div>
+
+                <!-- 메시지 전송 섹션 -->
+                <div class="demo-section">
+                    <h2>📨 메시지 전송 <span class="encryption-indicator encrypted">암호화됨</span></h2>
+                    
+                    <div class="input-group">
+                        <label>수신자:</label>
+                        <input type="text" id="recipient" placeholder="수신자 ID" value="admin">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>제목:</label>
+                        <input type="text" id="subject" placeholder="메시지 제목" value="긴급 보고">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>우선순위:</label>
+                        <select id="priority">
+                            <option value="low">낮음</option>
+                            <option value="normal" selected>보통</option>
+                            <option value="high">높음</option>
+                            <option value="urgent">긴급</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>메시지 내용:</label>
+                        <textarea id="message-content" rows="4" placeholder="메시지 내용을 입력하세요">안녕하세요,
+
+이것은 암호화된 통신으로 전송되는 기밀 메시지입니다.
+모든 내용은 AES-256-GCM으로 보호됩니다.
+
+감사합니다.</textarea>
+                    </div>
+                    
+                    <button class="btn success" onclick="sendMessage()">메시지 전송</button>
+                    <button class="btn warning" onclick="clearMessageForm()">폼 초기화</button>
+                    
+                    <div id="message-output" class="output">
+메시지 전송 결과가 여기에 표시됩니다...
+                    </div>
+                </div>
+
+                <!-- JSON 암호화 테스트 섹션 -->
+                <div class="demo-section">
+                    <h2>🔐 JSON 암호화 테스트 <span class="encryption-indicator plain">테스트용</span></h2>
+                    
+                    <div class="input-group">
+                        <label>테스트 JSON 데이터:</label>
+                        <textarea id="test-json" rows="4" placeholder='{"test": "data"}'>{
+  "message": "Hello World!",
+  "korean": "안녕하세요!",
+  "numbers": [1, 2, 3, 4, 5],
+  "nested": {
+    "info": "중첩된 객체",
+    "timestamp": "2024-01-01T00:00:00Z"
+  }
+}</textarea>
+                    </div>
+                    
+                    <button class="btn" onclick="testJSONEncryption()">JSON 암호화 테스트</button>
+                    <button class="btn" onclick="testServerEncryption()">서버 암호화 테스트</button>
+                    <button class="btn warning" onclick="clearTestForm()">폼 초기화</button>
+                    
+                    <div id="test-output" class="output">
+JSON 암호화 테스트 결과가 여기에 표시됩니다...
+                    </div>
+                </div>
+
+                <!-- 시스템 진단 섹션 -->
+                <div class="demo-section">
+                    <h2>🔧 시스템 진단 <span class="encryption-indicator plain">진단용</span></h2>
+                    
+                    <button class="btn" onclick="checkServerHealth()">서버 상태 확인</button>
+                    <button class="btn" onclick="getCryptoInfo()">암호화 정보</button>
+                    <button class="btn danger" onclick="clearAllOutputs()">모든 출력 초기화</button>
+                    
+                    <div class="json-preview" id="system-details">
+시스템 진단 정보가 여기에 표시됩니다...
+                    </div>
+                    
+                    <div id="diagnostic-output" class="output">
+진단 결과가 여기에 표시됩니다...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebAssembly 및 암호화 유틸리티 로드 -->
+    <script src="wasm_exec.js"></script>
+    <script src="crypto-utils.js"></script>
+    
+    <script>
+        // 통계 변수
+        let stats = {
+            userOperations: 0,
+            dataOperations: 0,
+            messageOperations: 0,
+            totalEncrypted: 0
+        };
+
+        // WebAssembly 로드
+        let wasmReady = false;
+
+        async function loadWebAssembly() {
+            try {
+                updateStatus("loading", "🔄 WebAssembly 모듈을 로드하는 중...");
+                
+                const go = new Go();
+                const result = await WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject);
+                go.run(result.instance);
+                
+                console.log("✅ WebAssembly 로드 완료");
+            } catch (error) {
+                console.error("❌ WebAssembly 로드 실패:", error);
+                updateStatus("error", "❌ WebAssembly 로드에 실패했습니다: " + error.message);
+            }
+        }
+
+        // WebAssembly 준비 완료 콜백
+        window.onCryptoWasmReady = function() {
+            wasmReady = true;
+            updateStatus("ready", "✅ 암호화 모듈이 준비되었습니다!");
+            document.getElementById('crypto-status').textContent = '준비됨 ✅';
+            checkServerHealth();
+        };
+
+        function updateStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function updateStats() {
+            document.getElementById('user-operations').textContent = stats.userOperations;
+            document.getElementById('data-operations').textContent = stats.dataOperations;
+            document.getElementById('message-operations').textContent = stats.messageOperations;
+            document.getElementById('total-encrypted').textContent = stats.totalEncrypted;
+        }
+
+        // 사용자 관리 함수들
+        async function registerUser() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                let profile = {};
+                try {
+                    profile = JSON.parse(document.getElementById('profile').value);
+                } catch (e) {
+                    profile = { note: document.getElementById('profile').value };
+                }
+
+                const userData = {
+                    username: document.getElementById('username').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    profile: profile
+                };
+
+                document.getElementById('user-output').textContent = "🔄 사용자 등록 중...";
+                
+                const result = await cryptoUtils.registerUser(userData);
+                
+                if (result.success) {
+                    document.getElementById('user-output').textContent = 
+                        `✅ 사용자 등록 성공!\n\n${JSON.stringify(result.data, null, 2)}\n\n암호화: ${result.encrypted}\n시간: ${result.timestamp}`;
+                    stats.userOperations++;
+                    stats.totalEncrypted++;
+                } else {
+                    document.getElementById('user-output').textContent = 
+                        `❌ 사용자 등록 실패:\n${result.error || JSON.stringify(result.data, null, 2)}`;
+                }
+                
+                updateStats();
+            } catch (error) {
+                document.getElementById('user-output').textContent = `❌ 오류 발생: ${error.message}`;
+            }
+        }
+
+        async function loginUser() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                const credentials = {
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                };
+
+                document.getElementById('user-output').textContent = "🔄 로그인 중...";
+                
+                const result = await cryptoUtils.loginUser(credentials);
+                
+                if (result.success) {
+                    document.getElementById('user-output').textContent = 
+                        `✅ 로그인 성공!\n\n${JSON.stringify(result.data, null, 2)}\n\n암호화: ${result.encrypted}\n시간: ${result.timestamp}`;
+                    stats.userOperations++;
+                    stats.totalEncrypted++;
+                } else {
+                    document.getElementById('user-output').textContent = 
+                        `❌ 로그인 실패:\n${result.error || JSON.stringify(result.data, null, 2)}`;
+                }
+                
+                updateStats();
+            } catch (error) {
+                document.getElementById('user-output').textContent = `❌ 오류 발생: ${error.message}`;
+            }
+        }
+
+        // 데이터 관리 함수들
+        async function createData() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                let content = {};
+                let metadata = {};
+                
+                try {
+                    content = JSON.parse(document.getElementById('data-content').value);
+                } catch (e) {
+                    content = { text: document.getElementById('data-content').value };
+                }
+                
+                try {
+                    metadata = JSON.parse(document.getElementById('metadata').value);
+                } catch (e) {
+                    metadata = { note: document.getElementById('metadata').value };
+                }
+
+                const dataInfo = {
+                    type: document.getElementById('data-type').value,
+                    content: content,
+                    metadata: metadata
+                };
+
+                document.getElementById('data-output').textContent = "🔄 데이터 생성 중...";
+                
+                const result = await cryptoUtils.createData(dataInfo);
+                
+                if (result.success) {
+                    document.getElementById('data-output').textContent = 
+                        `✅ 데이터 생성 성공!\n\n${JSON.stringify(result.data, null, 2)}\n\n암호화: ${result.encrypted}\n시간: ${result.timestamp}`;
+                    stats.dataOperations++;
+                    stats.totalEncrypted++;
+                } else {
+                    document.getElementById('data-output').textContent = 
+                        `❌ 데이터 생성 실패:\n${result.error || JSON.stringify(result.data, null, 2)}`;
+                }
+                
+                updateStats();
+            } catch (error) {
+                document.getElementById('data-output').textContent = `❌ 오류 발생: ${error.message}`;
+            }
+        }
+
+        async function readData() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                const queryInfo = {
+                    type: document.getElementById('data-type').value,
+                    filters: { classification: 'confidential' }
+                };
+
+                document.getElementById('data-output').textContent = "🔄 데이터 조회 중...";
+                
+                const result = await cryptoUtils.readData(queryInfo);
+                
+                if (result.success) {
+                    document.getElementById('data-output').textContent = 
+                        `✅ 데이터 조회 성공!\n\n${JSON.stringify(result.data, null, 2)}\n\n암호화: ${result.encrypted}\n시간: ${result.timestamp}`;
+                    stats.dataOperations++;
+                    stats.totalEncrypted++;
+                } else {
+                    document.getElementById('data-output').textContent = 
+                        `❌ 데이터 조회 실패:\n${result.error || JSON.stringify(result.data, null, 2)}`;
+                }
+                
+                updateStats();
+            } catch (error) {
+                document.getElementById('data-output').textContent = `❌ 오류 발생: ${error.message}`;
+            }
+        }
+
+        // 메시지 전송 함수
+        async function sendMessage() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                const messageInfo = {
+                    recipient: document.getElementById('recipient').value,
+                    subject: document.getElementById('subject').value,
+                    content: document.getElementById('message-content').value,
+                    priority: document.getElementById('priority').value
+                };
+
+                document.getElementById('message-output').textContent = "🔄 메시지 전송 중...";
+                
+                const result = await cryptoUtils.sendMessage(messageInfo);
+                
+                if (result.success) {
+                    document.getElementById('message-output').textContent = 
+                        `✅ 메시지 전송 성공!\n\n${JSON.stringify(result.data, null, 2)}\n\n암호화: ${result.encrypted}\n시간: ${result.timestamp}`;
+                    stats.messageOperations++;
+                    stats.totalEncrypted++;
+                } else {
+                    document.getElementById('message-output').textContent = 
+                        `❌ 메시지 전송 실패:\n${result.error || JSON.stringify(result.data, null, 2)}`;
+                }
+                
+                updateStats();
+            } catch (error) {
+                document.getElementById('message-output').textContent = `❌ 오류 발생: ${error.message}`;
+            }
+        }
+
+        // JSON 암호화 테스트 함수들
+        function testJSONEncryption() {
+            if (!wasmReady) {
+                alert("WebAssembly가 준비되지 않았습니다.");
+                return;
+            }
+
+            try {
+                const testData = JSON.parse(document.getElementById('test-json').value);
+                
+                document.getElementById('test-output').textContent = "🔄 JSON 암호화 테스트 중...";
+                
+                // 암호화
+                const encryptResult = cryptoUtils.encryptJSON(testData);
+                if (!encryptResult.success) {
+                    throw new Error("암호화 실패: " + encryptResult.error);
+                }
+                
+                // 복호화
+                const decryptResult = cryptoUtils.decryptJSON(encryptResult.encryptedData);
+                if (!decryptResult.success) {
+                    throw new Error("복호화 실패: " + decryptResult.error);
+                }
+                
+                const isValid = JSON.stringify(testData) === JSON.stringify(decryptResult.data);
+                
+                document.getElementById('test-output').textContent = 
+                    `${isValid ? '✅' : '❌'} JSON 암호화 테스트 ${isValid ? '성공' : '실패'}!\n\n` +
+                    `원본 데이터:\n${JSON.stringify(testData, null, 2)}\n\n` +
+                    `암호화된 데이터:\n${encryptResult.encryptedData.slice(0, 100)}...\n\n` +
+                    `복호화된 데이터:\n${JSON.stringify(decryptResult.data, null, 2)}\n\n` +
+                    `검증 결과: ${isValid ? '일치' : '불일치'}`;
+                
+                if (isValid) {
+                    stats.totalEncrypted++;
+                    updateStats();
+                }
+            } catch (error) {
+                document.getElementById('test-output').textContent = `❌ 테스트 실패: ${error.message}`;
+            }
+        }
+
+        async function testServerEncryption() {
+            try {
+                const testData = JSON.parse(document.getElementById('test-json').value);
+                
+                document.getElementById('test-output').textContent = "🔄 서버 JSON 암호화 테스트 중...";
+                
+                const result = await cryptoUtils.apiCall('/api/test-json-encryption', {
+                    method: 'POST',
+                    body: JSON.stringify({ testData })
+                });
+                
+                document.getElementById('test-output').textContent = 
+                    `✅ 서버 암호화 테스트 완료!\n\n${JSON.stringify(result, null, 2)}`;
+                
+            } catch (error) {
+                document.getElementById('test-output').textContent = `❌ 서버 테스트 실패: ${error.message}`;
+            }
+        }
+
+        // 시스템 진단 함수들
+        async function checkServerHealth() {
+            try {
+                document.getElementById('server-status').textContent = '확인중...';
+                
+                const result = await cryptoUtils.checkHealth();
+                
+                document.getElementById('diagnostic-output').textContent = 
+                    `✅ 서버 상태 확인 완료!\n\n${JSON.stringify(result, null, 2)}`;
+                
+                document.getElementById('server-status').textContent = '연결됨 ✅';
+                
+                // 시스템 세부 정보 업데이트
+                document.getElementById('system-details').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                document.getElementById('diagnostic-output').textContent = `❌ 서버 연결 실패: ${error.message}`;
+                document.getElementById('server-status').textContent = '연결 실패 ❌';
+            }
+        }
+
+        async function getCryptoInfo() {
+            try {
+                const result = await cryptoUtils.getCryptoInfo();
+                
+                document.getElementById('diagnostic-output').textContent = 
+                    `✅ 암호화 정보 조회 완료!\n\n${JSON.stringify(result, null, 2)}`;
+                
+            } catch (error) {
+                document.getElementById('diagnostic-output').textContent = `❌ 암호화 정보 조회 실패: ${error.message}`;
+            }
+        }
+
+        // 폼 초기화 함수들
+        function clearUserForm() {
+            document.getElementById('username').value = 'testuser';
+            document.getElementById('email').value = 'test@example.com';
+            document.getElementById('password').value = 'password123';
+            document.getElementById('profile').value = '{\n  "name": "홍길동",\n  "age": 30,\n  "department": "개발팀"\n}';
+            document.getElementById('user-output').textContent = '사용자 관리 결과가 여기에 표시됩니다...';
+        }
+
+        function clearDataForm() {
+            document.getElementById('data-type').value = 'document';
+            document.getElementById('data-content').value = '{\n  "title": "중요한 문서",\n  "body": "이것은 기밀 정보입니다.",\n  "tags": ["중요", "기밀"],\n  "author": "system"\n}';
+            document.getElementById('metadata').value = '{\n  "version": "1.0",\n  "classification": "confidential",\n  "department": "security"\n}';
+            document.getElementById('data-output').textContent = '데이터 관리 결과가 여기에 표시됩니다...';
+        }
+
+        function clearMessageForm() {
+            document.getElementById('recipient').value = 'admin';
+            document.getElementById('subject').value = '긴급 보고';
+            document.getElementById('priority').value = 'normal';
+            document.getElementById('message-content').value = '안녕하세요,\n\n이것은 암호화된 통신으로 전송되는 기밀 메시지입니다.\n모든 내용은 AES-256-GCM으로 보호됩니다.\n\n감사합니다.';
+            document.getElementById('message-output').textContent = '메시지 전송 결과가 여기에 표시됩니다...';
+        }
+
+        function clearTestForm() {
+            document.getElementById('test-json').value = '{\n  "message": "Hello World!",\n  "korean": "안녕하세요!",\n  "numbers": [1, 2, 3, 4, 5],\n  "nested": {\n    "info": "중첩된 객체",\n    "timestamp": "2024-01-01T00:00:00Z"\n  }\n}';
+            document.getElementById('test-output').textContent = 'JSON 암호화 테스트 결과가 여기에 표시됩니다...';
+        }
+
+        function clearAllOutputs() {
+            document.getElementById('user-output').textContent = '사용자 관리 결과가 여기에 표시됩니다...';
+            document.getElementById('data-output').textContent = '데이터 관리 결과가 여기에 표시됩니다...';
+            document.getElementById('message-output').textContent = '메시지 전송 결과가 여기에 표시됩니다...';
+            document.getElementById('test-output').textContent = 'JSON 암호화 테스트 결과가 여기에 표시됩니다...';
+            document.getElementById('diagnostic-output').textContent = '진단 결과가 여기에 표시됩니다...';
+            document.getElementById('system-details').textContent = '시스템 진단 정보가 여기에 표시됩니다...';
+            
+            stats = {
+                userOperations: 0,
+                dataOperations: 0,
+                messageOperations: 0,
+                totalEncrypted: 0
+            };
+            updateStats();
+        }
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            loadWebAssembly();
+            updateStats();
+        };
+    </script>
+</body>
+</html> 
