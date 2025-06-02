@@ -4,11 +4,12 @@
   "description": "양방향 암호화 통신 시스템 - 프론트엔드 (npm)",
   "main": "src/index.html",
   "scripts": {
-    "dev": "npx http-server src -p 8000 -c-1 --cors",
+    "dev": "npm run build-wasm && cp crypto-wasm/wasm_exec.js src/ && cp crypto-wasm/main.wasm src/ && node dev-server.js",
     "build-wasm": "cd crypto-wasm && chmod +x build.sh && ./build.sh",
-    "build": "mkdir -p dist && cp -r src/* dist/",
+    "build": "npm run build-wasm && mkdir -p dist && cp -r src/* dist/ && cp crypto-wasm/wasm_exec.js dist/ && cp crypto-wasm/main.wasm dist/",
+    "docker-build": "mkdir -p dist && cp src/index.html dist/ && cp src/main.wasm dist/ && cp src/wasm_exec.js dist/",
     "serve": "npx http-server dist -p 8000 --cors",
-    "clean": "rm -rf dist && cd crypto-wasm && rm -f main.wasm",
+    "clean": "rm -rf dist && rm -f src/crypto-wasm && rm -f src/wasm_exec.js && rm -f src/main.wasm && cd crypto-wasm && rm -f main.wasm",
     "test": "echo \"Frontend tests not implemented yet\" && exit 0",
     "lint": "echo \"Linting not configured\" && exit 0",
     "format": "echo \"Formatting not configured\" && exit 0"

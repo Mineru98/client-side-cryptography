@@ -33,8 +33,6 @@ services:
       - backend
     networks:
       - web-security-network
-    volumes:
-      - ./frontend/dist:/usr/share/nginx/html
     restart: unless-stopped
 
   # 개발용 WebAssembly 빌더 (개발 시에만 사용)

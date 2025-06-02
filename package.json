@@ -27,10 +27,21 @@
     "lint": "pnpm --recursive lint",
     "format": "pnpm --recursive format"
   },
-  "keywords": ["encryption", "webassembly", "go", "nodejs", "express", "pnpm", "monorepo"],
+  "keywords": [
+    "encryption",
+    "webassembly",
+    "go",
+    "nodejs",
+    "express",
+    "pnpm",
+    "monorepo"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "node-fetch": "3.3.2"
   }
-} 
+}

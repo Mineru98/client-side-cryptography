@@ -312,7 +312,7 @@
         </div>
     </div>
 
-    <script src="../crypto-wasm/wasm_exec.js"></script>
+    <script src="wasm_exec.js?v=1"></script>
     <script>
         let wasmReady = false;
         let stats = {
@@ -322,16 +322,91 @@
             totalData: 0
         };
 
-        // WebAssembly 로드
+        // WebAssembly 로드 (개선된 버전)
         const go = new Go();
-        WebAssembly.instantiateStreaming(fetch("../crypto-wasm/main.wasm"), go.importObject)
-            .then((result) => {
-                go.run(result.instance);
-            })
-            .catch((error) => {
-                console.error("WebAssembly 로드 실패:", error);
+        
+        async function loadWebAssembly() {
+            try {
+                console.log('🔄 WebAssembly 로딩 시작...');
+                
+                // 캐시 방지를 위한 고유 버전 생성
+                const version = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const wasmUrl = `main.wasm?v=${version}`;
+                
+                // 첫 번째 시도: instantiateStreaming 사용
+                try {
+                    const response = await fetch(wasmUrl, {
+                        cache: 'no-cache',
+                        mode: 'cors',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    
+                    console.log('📊 응답 상태:', response.status);
+                    console.log('📊 Content-Type:', response.headers.get('content-type'));
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const result = await WebAssembly.instantiateStreaming(response, go.importObject);
+                    console.log('✅ instantiateStreaming 성공');
+                    go.run(result.instance);
+                    return;
+                } catch (streamingError) {
+                    console.warn('⚠️ instantiateStreaming 실패, fallback 시도:', streamingError.message);
+                }
+                
+                // 두 번째 시도: fetch + compile + instantiate
+                console.log('🔄 fallback 방식으로 로딩 중...');
+                const response = await fetch(wasmUrl, {
+                    cache: 'no-cache',
+                    mode: 'cors',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                console.log('📊 Content-Type:', contentType);
+                
+                if (contentType !== 'application/wasm') {
+                    console.warn('⚠️ 잘못된 MIME type:', contentType);
+                    throw new Error(`잘못된 MIME type: ${contentType}, 예상: application/wasm`);
+                }
+                
+                const bytes = await response.arrayBuffer();
+                console.log('📊 WASM 파일 크기:', bytes.byteLength, 'bytes');
+                
+                const module = await WebAssembly.compile(bytes);
+                console.log('✅ WebAssembly 컴파일 성공');
+                
+                const instance = await WebAssembly.instantiate(module, go.importObject);
+                console.log('✅ WebAssembly 인스턴스 생성 성공');
+                
+                go.run(instance);
+                
+            } catch (error) {
+                console.error("❌ WebAssembly 로드 실패:", error);
                 updateStatus("error", "❌ WebAssembly 로드에 실패했습니다: " + error.message);
-            });
+                
+                // 상세한 디버그 정보 출력
+                console.error("상세 에러 정보:");
+                console.error("- 메시지:", error.message);
+                console.error("- 스택:", error.stack);
+                console.error("- 타입:", error.constructor.name);
+            }
+        }
+        
+        // WebAssembly 로드 시작
+        loadWebAssembly();
 
         // WebAssembly 준비 완료 콜백
         window.onCryptoWasmReady = function() {

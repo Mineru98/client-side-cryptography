@@ -14,10 +14,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY src/ ./src/
-COPY crypto-wasm/ ./crypto-wasm/
 COPY --from=wasm-builder /workspace/main.wasm ./src/
 COPY --from=wasm-builder /workspace/wasm_exec.js ./src/
-RUN npm run build
+RUN npm run docker-build
 
 # Stage 3: Production
 FROM nginx:alpine
